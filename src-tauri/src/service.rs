@@ -49,6 +49,31 @@ fn sc(args: &[&str]) -> std::io::Result<std::process::Output> {
     std::process::Command::new("sc.exe").args(args).output()
 }
 
+// WinDivert kernel sürücüsünü boşaltır. goodbyedpi çalışırken WinDivert64.sys'i
+// bir kernel servisi olarak yükler; bu servis durdurulmadan .sys dosyası kilitli
+// kalır ve üzerine kopyalanamaz (os error 32).
+fn unload_windivert() {
+    for name in &["WinDivert", "WinDivert1.4", "WinDivert14"] {
+        let _ = sc(&["stop", name]);
+        let _ = sc(&["delete", name]);
+    }
+}
+
+// Sürücü boşalana kadar bekleyip kopyalamayı birkaç kez dener.
+fn copy_with_retry(src: &std::path::Path, dst: &std::path::Path) -> Result<(), String> {
+    let mut last_err = String::new();
+    for _ in 0..20 {
+        match std::fs::copy(src, dst) {
+            Ok(_) => return Ok(()),
+            Err(e) => {
+                last_err = e.to_string();
+                std::thread::sleep(std::time::Duration::from_millis(500));
+            }
+        }
+    }
+    Err(last_err)
+}
+
 #[tauri::command]
 pub fn service_installed() -> bool {
     sc(&["query", "MavroDPI"])
@@ -62,24 +87,27 @@ pub fn install_service(app: tauri::AppHandle) -> Result<(), String> {
     let svc_bin = find_service_host(&app)?;
     let dst = install_dir();
 
+    // Varsa eski servisi durdur ve sil (servis goodbyedpi'yi çalıştırıyor olabilir).
+    let _ = sc(&["stop", "MavroDPI"]);
+    std::thread::sleep(std::time::Duration::from_millis(1500));
+    let _ = sc(&["delete", "MavroDPI"]);
+
     // Tüm çalışan goodbyedpi örneklerini durdur.
     let _ = std::process::Command::new("taskkill")
         .args(["/F", "/IM", "goodbyedpi.exe"])
         .output();
 
-    // Varsa eski servisi durdur ve sil.
-    let _ = sc(&["stop", "MavroDPI"]);
+    // WinDivert kernel sürücüsünü boşalt ki WinDivert64.sys kilidi açılsın.
+    unload_windivert();
     std::thread::sleep(std::time::Duration::from_millis(1500));
-    let _ = sc(&["delete", "MavroDPI"]);
-    std::thread::sleep(std::time::Duration::from_millis(800));
 
     std::fs::create_dir_all(&dst).map_err(|e| format!("Klasör oluşturulamadı: {e}"))?;
 
     for file in &["goodbyedpi.exe", "WinDivert.dll", "WinDivert64.sys"] {
-        std::fs::copy(src.join(file), dst.join(file))
+        copy_with_retry(&src.join(file), &dst.join(file))
             .map_err(|e| format!("{file} kopyalanamadı: {e}"))?;
     }
-    std::fs::copy(&svc_bin, dst.join("mavrodpi-svc.exe"))
+    copy_with_retry(&svc_bin, &dst.join("mavrodpi-svc.exe"))
         .map_err(|e| format!("mavrodpi-svc.exe kopyalanamadı: {e}"))?;
 
     let svc_exe = dst.join("mavrodpi-svc.exe");
