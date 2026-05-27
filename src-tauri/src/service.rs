@@ -19,44 +19,58 @@ fn find_goodbyedpi_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
             return Ok(c.clone());
         }
     }
-    Err(format!(
-        "goodbyedpi.exe bulunamadı. Aranan: {:?}",
-        candidates
-    ))
+    Err(format!("goodbyedpi.exe bulunamadı. Aranan: {:?}", candidates))
+}
+
+fn find_service_host(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    let mut candidates: Vec<PathBuf> = Vec::new();
+    if let Ok(res) = app.path().resource_dir() {
+        candidates.push(res.join("resources/mavrodpi-svc.exe"));
+        candidates.push(res.join("mavrodpi-svc.exe"));
+    }
+    candidates.push(
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources/mavrodpi-svc.exe"),
+    );
+    // dev: binary next to the running exe
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(dir) = exe.parent() {
+            candidates.push(dir.join("mavrodpi-svc.exe"));
+        }
+    }
+    for c in &candidates {
+        if c.exists() {
+            return Ok(c.clone());
+        }
+    }
+    Err(format!("mavrodpi-svc.exe bulunamadı. Aranan: {:?}", candidates))
+}
+
+fn sc(args: &[&str]) -> std::io::Result<std::process::Output> {
+    std::process::Command::new("sc.exe").args(args).output()
 }
 
 #[tauri::command]
 pub fn service_installed() -> bool {
-    let out = std::process::Command::new("powershell")
-        .args([
-            "-NoProfile",
-            "-NonInteractive",
-            "-Command",
-            "Get-ScheduledTask -TaskName 'MavroDPI' -ErrorAction SilentlyContinue | Select-Object -ExpandProperty TaskName",
-        ])
-        .output();
-    match out {
-        Ok(o) => String::from_utf8_lossy(&o.stdout).trim() == "MavroDPI",
-        Err(_) => false,
-    }
+    sc(&["query", "MavroDPI"])
+        .map(|o| o.status.success())
+        .unwrap_or(false)
 }
 
 #[tauri::command]
 pub fn install_service(app: tauri::AppHandle) -> Result<(), String> {
     let src = find_goodbyedpi_dir(&app)?;
+    let svc_bin = find_service_host(&app)?;
     let dst = install_dir();
 
-    // Çalışan tüm goodbyedpi örneklerini durdur (driver kilitli olmasın).
+    // Tüm çalışan goodbyedpi örneklerini durdur.
     let _ = std::process::Command::new("taskkill")
         .args(["/F", "/IM", "goodbyedpi.exe"])
         .output();
-    let _ = std::process::Command::new("powershell")
-        .args([
-            "-NoProfile", "-NonInteractive", "-Command",
-            "Stop-ScheduledTask -TaskName 'MavroDPI' -ErrorAction SilentlyContinue",
-        ])
-        .output();
-    // WinDivert kernel driver'ının boşalması için kısa süre bekle.
+
+    // Varsa eski servisi durdur ve sil.
+    let _ = sc(&["stop", "MavroDPI"]);
+    std::thread::sleep(std::time::Duration::from_millis(1500));
+    let _ = sc(&["delete", "MavroDPI"]);
     std::thread::sleep(std::time::Duration::from_millis(800));
 
     std::fs::create_dir_all(&dst).map_err(|e| format!("Klasör oluşturulamadı: {e}"))?;
@@ -65,54 +79,60 @@ pub fn install_service(app: tauri::AppHandle) -> Result<(), String> {
         std::fs::copy(src.join(file), dst.join(file))
             .map_err(|e| format!("{file} kopyalanamadı: {e}"))?;
     }
+    std::fs::copy(&svc_bin, dst.join("mavrodpi-svc.exe"))
+        .map_err(|e| format!("mavrodpi-svc.exe kopyalanamadı: {e}"))?;
 
-    let exe = dst.join("goodbyedpi.exe");
-    let exe_str = exe.to_string_lossy();
-    let dir_str = dst.to_string_lossy();
+    let svc_exe = dst.join("mavrodpi-svc.exe");
+    let svc_path = svc_exe.to_string_lossy().to_string();
 
-    let script = format!(
-        r#"
-$action  = New-ScheduledTaskAction -Execute '{exe}' -Argument '-5' -WorkingDirectory '{dir}'
-$trigger = New-ScheduledTaskTrigger -AtStartup
-$set     = New-ScheduledTaskSettingsSet -StartWhenAvailable -ExecutionTimeLimit 0
-$prin    = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest
-Unregister-ScheduledTask -TaskName 'MavroDPI' -Confirm:$false -ErrorAction SilentlyContinue
-Register-ScheduledTask -TaskName 'MavroDPI' -Action $action -Trigger $trigger -Settings $set -Principal $prin | Out-Null
-Start-ScheduledTask -TaskName 'MavroDPI'
-"#,
-        exe = exe_str,
-        dir = dir_str,
-    );
+    // Windows Service olarak kaydet.
+    let out = sc(&[
+        "create", "MavroDPI",
+        "binPath=", &svc_path,
+        "start=", "auto",
+        "DisplayName=", "MavroDPI",
+        "type=", "own",
+    ]).map_err(|e| e.to_string())?;
 
-    run_ps(&script)
+    if !out.status.success() {
+        return Err(format!(
+            "Servis oluşturulamadı: {}{}",
+            String::from_utf8_lossy(&out.stderr),
+            String::from_utf8_lossy(&out.stdout)
+        ));
+    }
+
+    // Çökerse otomatik yeniden başlat.
+    let _ = sc(&[
+        "failure", "MavroDPI",
+        "reset=", "86400",
+        "actions=", "restart/5000/restart/10000/restart/30000",
+    ]);
+
+    // Hemen başlat.
+    let _ = sc(&["start", "MavroDPI"]);
+
+    Ok(())
 }
 
 #[tauri::command]
 pub fn uninstall_service() -> Result<(), String> {
-    run_ps(
-        r"
-Stop-ScheduledTask  -TaskName 'MavroDPI' -ErrorAction SilentlyContinue
-Unregister-ScheduledTask -TaskName 'MavroDPI' -Confirm:$false -ErrorAction SilentlyContinue
-",
-    )
+    let _ = sc(&["stop", "MavroDPI"]);
+    std::thread::sleep(std::time::Duration::from_millis(1500));
+    let out = sc(&["delete", "MavroDPI"]).map_err(|e| e.to_string())?;
+    if out.status.success() {
+        Ok(())
+    } else {
+        Err(String::from_utf8_lossy(&out.stderr).trim().to_string())
+    }
 }
 
 #[tauri::command]
 pub fn start_service_now() -> Result<(), String> {
-    run_ps("Start-ScheduledTask -TaskName 'MavroDPI'")
-}
-
-fn run_ps(script: &str) -> Result<(), String> {
-    let out = std::process::Command::new("powershell")
-        .args(["-NoProfile", "-NonInteractive", "-Command", script])
-        .output()
-        .map_err(|e| e.to_string())?;
-
+    let out = sc(&["start", "MavroDPI"]).map_err(|e| e.to_string())?;
     if out.status.success() {
         Ok(())
     } else {
-        let stderr = String::from_utf8_lossy(&out.stderr);
-        let stdout = String::from_utf8_lossy(&out.stdout);
-        Err(format!("{}{}", stderr, stdout).trim().to_string())
+        Err(String::from_utf8_lossy(&out.stderr).trim().to_string())
     }
 }

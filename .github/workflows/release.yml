@@ -23,6 +23,14 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Build service host binary
+        shell: pwsh
+        run: |
+          cd src-tauri
+          cargo build --release --bin mavrodpi-svc
+          New-Item -ItemType Directory -Force resources | Out-Null
+          Copy-Item target/release/mavrodpi-svc.exe resources/mavrodpi-svc.exe
+
       - name: Build & release
         uses: tauri-apps/tauri-action@v0
         env:
