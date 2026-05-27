@@ -203,9 +203,15 @@ export default function App() {
         setServiceOn(false);
         addLog("Otomatik başlatma servisi kaldırıldı.");
       } else {
+        // Kurulum öncesi korumayı durdur (WinDivert kilitli olmasın).
+        if (running) {
+          await invoke("stop_protection").catch(() => {});
+          await invoke("disable_doh").catch(() => {});
+          setDohOn(false);
+        }
         await invoke("install_service");
         setServiceOn(true);
-        addLog("Servis kuruldu ve başlatıldı — PC açıldığında otomatik koruma başlayacak.");
+        addLog("Servis kuruldu — PC açıldığında otomatik koruma başlayacak.");
       }
     } catch (e) {
       setError(String(e));

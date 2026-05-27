@@ -46,13 +46,18 @@ pub fn install_service(app: tauri::AppHandle) -> Result<(), String> {
     let src = find_goodbyedpi_dir(&app)?;
     let dst = install_dir();
 
-    // Eğer servis zaten çalışıyorsa dosyalar kilitli olur — önce durdur.
+    // Çalışan tüm goodbyedpi örneklerini durdur (driver kilitli olmasın).
+    let _ = std::process::Command::new("taskkill")
+        .args(["/F", "/IM", "goodbyedpi.exe"])
+        .output();
     let _ = std::process::Command::new("powershell")
         .args([
             "-NoProfile", "-NonInteractive", "-Command",
             "Stop-ScheduledTask -TaskName 'MavroDPI' -ErrorAction SilentlyContinue",
         ])
         .output();
+    // WinDivert kernel driver'ının boşalması için kısa süre bekle.
+    std::thread::sleep(std::time::Duration::from_millis(800));
 
     std::fs::create_dir_all(&dst).map_err(|e| format!("Klasör oluşturulamadı: {e}"))?;
 
