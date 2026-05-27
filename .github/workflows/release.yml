@@ -23,16 +23,24 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Build service host binary
+      - name: Build service host binary (isolated, no Tauri build.rs)
         shell: pwsh
         run: |
-          # Tauri build.rs dosyanın var olduğunu kontrol eder — önce placeholder koy
-          New-Item -ItemType Directory -Force src-tauri/resources | Out-Null
-          [System.IO.File]::WriteAllBytes("src-tauri\resources\mavrodpi-svc.exe", [byte[]]@(0x4D,0x5A))
-          # Gerçek binary'yi derle ve üzerine yaz
-          cd src-tauri
-          cargo build --release --bin mavrodpi-svc
-          Copy-Item target\release\mavrodpi-svc.exe resources\mavrodpi-svc.exe -Force
+          New-Item -ItemType Directory -Force svc-build\src | Out-Null
+          Copy-Item src-tauri\src\bin\mavrodpi-svc.rs svc-build\src\main.rs
+          @"
+          [package]
+          name = "mavrodpi-svc"
+          version = "0.1.0"
+          edition = "2021"
+          [dependencies]
+          windows-service = "0.7"
+          "@ | Out-File svc-build\Cargo.toml -Encoding utf8
+          cd svc-build
+          cargo build --release
+          cd ..
+          New-Item -ItemType Directory -Force src-tauri\resources | Out-Null
+          Copy-Item svc-build\target\release\mavrodpi-svc.exe src-tauri\resources\mavrodpi-svc.exe -Force
 
       - name: Build & release
         uses: tauri-apps/tauri-action@v0
