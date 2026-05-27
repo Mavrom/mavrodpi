@@ -26,10 +26,13 @@ jobs:
       - name: Build service host binary
         shell: pwsh
         run: |
+          # Tauri build.rs dosyanın var olduğunu kontrol eder — önce placeholder koy
+          New-Item -ItemType Directory -Force src-tauri/resources | Out-Null
+          [System.IO.File]::WriteAllBytes("src-tauri\resources\mavrodpi-svc.exe", [byte[]]@(0x4D,0x5A))
+          # Gerçek binary'yi derle ve üzerine yaz
           cd src-tauri
           cargo build --release --bin mavrodpi-svc
-          New-Item -ItemType Directory -Force resources | Out-Null
-          Copy-Item target/release/mavrodpi-svc.exe resources/mavrodpi-svc.exe
+          Copy-Item target\release\mavrodpi-svc.exe resources\mavrodpi-svc.exe -Force
 
       - name: Build & release
         uses: tauri-apps/tauri-action@v0
