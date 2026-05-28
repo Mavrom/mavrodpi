@@ -220,7 +220,8 @@ export default function App() {
     }
   }
 
-  const active = running || dohOn;
+  const dpiOn  = running || serviceOn;
+  const active = dpiOn || dohOn;
 
   return (
     <div className="app">
@@ -295,7 +296,9 @@ export default function App() {
         </div>
         <div className="stat-card">
           <span className="stat-label">DPI Koruması</span>
-          <span className={`stat-val ${running ? "good" : "dim"}`}>{running ? "Açık" : "Kapalı"}</span>
+          <span className={`stat-val ${dpiOn ? "good" : "dim"}`}>
+            {running ? "Açık" : serviceOn ? "Açık (servis)" : "Kapalı"}
+          </span>
         </div>
         <div className="stat-card">
           <span className="stat-label">Çalışma Süresi</span>
