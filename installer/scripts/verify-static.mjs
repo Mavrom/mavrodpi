@@ -32,7 +32,7 @@ function requireCondition(condition, message) {
   }
 }
 
-requireCondition(manifest.version === "0.3.2", "Wrapper sürümü 0.3.2 olmalı.");
+requireCondition(manifest.version === "0.3.3", "Wrapper sürümü 0.3.3 olmalı.");
 requireCondition(
   manifest.build?.artifactName === "MavroDPI-Setup.exe",
   "Release adı MavroDPI-Setup.exe olmalı.",
@@ -105,6 +105,15 @@ for (const token of [
   requireCondition(
     mainSource.includes(token),
     `Runtime bütünlük doğrulaması eksik: ${token}`,
+  );
+}
+for (const token of [
+  'nsis_tauri_utils::KillProcess "${MAINBINARYNAME}.exe"',
+  "SetOverwrite on",
+]) {
+  requireCondition(
+    (await read("../src-tauri/nsis/hooks.nsi")).includes(token),
+    `Onarım sırasında dosya değişimi güvence altına alınmalı: ${token}`,
   );
 }
 for (const token of [

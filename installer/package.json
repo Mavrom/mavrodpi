@@ -1,6 +1,6 @@
 {
   "name": "mavrodpi-setup",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "MavroDPI için güvenli, özel Windows kurulum başlatıcısı",
   "main": "main.cjs",
   "author": "MavroM / Mavrom",

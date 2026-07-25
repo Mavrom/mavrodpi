@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.3 — 2026-07-25
+
+- Onarım akışı, açık MavroDPI sürecini kapatmadan başarı vermeyecek; dosya
+  değişimi zorlanarak doğrulanacak.
+- Özel setup penceresi 940×680'e taşındı; büyütülen yazılarla tüm durum ve
+  eylem alanları görünür kalacak şekilde yerleşim dengelendi.
+
 ## 0.3.2 — 2026-07-25
 
 - Mevcut, doğrulanabilir MavroDPI kurulumu otomatik algılanır ve Setup

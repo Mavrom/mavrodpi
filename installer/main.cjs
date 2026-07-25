@@ -10,7 +10,7 @@ const { promisify } = require("node:util");
 
 const execFileAsync = promisify(execFile);
 const PRODUCT_NAME = "MavroDPI";
-const PRODUCT_VERSION = "0.3.2";
+const PRODUCT_VERSION = "0.3.3";
 const INSTALLED_EXECUTABLE = "MavroDPI.exe";
 const PAYLOAD_FILE = "MavroDPI-payload.exe";
 const PAYLOAD_MANIFEST_FILE = "payload-manifest.json";
@@ -793,12 +793,12 @@ function hardenWebContents(contents) {
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 820,
-    height: 600,
-    minWidth: 820,
-    minHeight: 600,
-    maxWidth: 820,
-    maxHeight: 600,
+    width: 940,
+    height: 680,
+    minWidth: 940,
+    minHeight: 680,
+    maxWidth: 940,
+    maxHeight: 680,
     show: false,
     frame: false,
     transparent: true,

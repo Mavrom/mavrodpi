@@ -1,6 +1,6 @@
 [package]
 name = "mavrodpi"
-version = "0.3.2"
+version = "0.3.3"
 description = "MavroDPI — DPI atlatma masaüstü uygulaması"
 authors = ["Berk"]
 edition = "2021"

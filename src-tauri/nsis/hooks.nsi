@@ -15,6 +15,29 @@
   ; v0.2.4 did not own its foreground engine with a Job Object. During an
   ; updater install, terminate only the executable in this exact install path.
   ${If} $UpdateMode = 1
+    ; NSIS exits successfully in silent mode when the main executable is still
+    ; open, but it then skips replacing it. Close the known product process
+    ; before touching files so an onarım really updates the installed binary.
+    nsis_tauri_utils::FindProcess "${MAINBINARYNAME}.exe"
+    Pop $R8
+    ${If} $R8 = 0
+      DetailPrint "Açık MavroDPI uygulaması güncelleme için kapatılıyor..."
+      nsis_tauri_utils::KillProcess "${MAINBINARYNAME}.exe"
+      Pop $R8
+      Sleep 700
+      nsis_tauri_utils::FindProcess "${MAINBINARYNAME}.exe"
+      Pop $R8
+      ${If} $R8 = 0
+        StrCpy $R7 "Açık MavroDPI uygulaması kapatılamadı. Onarım dosyaları değiştirmeden durduruldu."
+        DetailPrint "$R7"
+        SetErrorLevel 1
+        Abort
+      ${EndIf}
+    ${EndIf}
+
+    ; Keep repair deterministic even when an older executable has a newer
+    ; filesystem timestamp than the incoming release.
+    SetOverwrite on
     StrCpy $R7 ""
     System::Call 'kernel32::SetEnvironmentVariableW(w "MAVRODPI_LEGACY_ENGINE_PATH", w "$INSTDIR\resources\goodbyedpi\x86_64\goodbyedpi.exe") i.r9'
     ${If} $R9 = 0
