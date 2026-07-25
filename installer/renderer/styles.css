@@ -146,7 +146,7 @@ button {
 
 .brand-name {
   color: var(--white);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 760;
   letter-spacing: 0.15em;
 }
@@ -162,7 +162,7 @@ button {
   gap: 8px;
   color: #545454;
   font-family: Consolas, "Cascadia Mono", monospace;
-  font-size: 8px;
+  font-size: 9px;
   letter-spacing: 0.14em;
 }
 
@@ -177,7 +177,7 @@ button {
   gap: 7px;
   color: #6b6b6b;
   font-family: Consolas, "Cascadia Mono", monospace;
-  font-size: 7px;
+  font-size: 8px;
   letter-spacing: 0.1em;
 }
 
@@ -209,14 +209,14 @@ button {
   margin: 0;
   color: var(--orange);
   font-family: Consolas, "Cascadia Mono", monospace;
-  font-size: 8px;
+  font-size: 9px;
   letter-spacing: 0.14em;
 }
 
 h1 {
   margin: 12px 0 0;
   color: var(--white);
-  font-size: 42px;
+  font-size: 48px;
   font-weight: 590;
   letter-spacing: -0.055em;
   line-height: 0.98;
@@ -230,7 +230,7 @@ h1 span {
   max-width: 390px;
   margin: 17px 0 0;
   color: #777;
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.65;
 }
 
@@ -300,14 +300,14 @@ h1 span {
 .package-copy small {
   color: #4e4e4e;
   font-family: Consolas, "Cascadia Mono", monospace;
-  font-size: 7px;
+  font-size: 8px;
   letter-spacing: 0.1em;
 }
 
 .package-copy strong {
   margin-top: 3px;
   color: var(--soft-white);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 590;
 }
 
@@ -317,7 +317,7 @@ h1 span {
   overflow: hidden;
   color: #505050;
   font-family: Consolas, "Cascadia Mono", monospace;
-  font-size: 7px;
+  font-size: 8px;
   font-style: normal;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -328,7 +328,7 @@ h1 span {
   border: 1px solid #2a2a2a;
   color: #535353;
   font-family: Consolas, "Cascadia Mono", monospace;
-  font-size: 6px;
+  font-size: 7px;
   letter-spacing: 0.08em;
 }
 
@@ -359,12 +359,12 @@ h1 span {
   border-radius: 50%;
   color: var(--orange);
   font-family: Consolas, monospace;
-  font-size: 8px;
+  font-size: 9px;
 }
 
 .notice p {
   margin: 1px 0 0;
-  font-size: 8px;
+  font-size: 9px;
   line-height: 1.5;
 }
 
@@ -386,7 +386,7 @@ h1 span {
 .process-head h2 {
   margin: 6px 0 0;
   color: var(--white);
-  font-size: 17px;
+  font-size: 20px;
   font-weight: 570;
   letter-spacing: -0.035em;
 }
@@ -449,7 +449,7 @@ h1 span {
 .step-number {
   color: #3e3e3e;
   font-family: Consolas, "Cascadia Mono", monospace;
-  font-size: 7px;
+  font-size: 8px;
 }
 
 .step-copy strong,
@@ -459,20 +459,20 @@ h1 span {
 
 .step-copy strong {
   color: #8a8a8a;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 560;
 }
 
 .step-copy small {
   margin-top: 3px;
   color: #414141;
-  font-size: 7px;
+  font-size: 8px;
 }
 
 .step-state {
   color: #3d3d3d;
   font-family: Consolas, "Cascadia Mono", monospace;
-  font-size: 6px;
+  font-size: 7px;
   letter-spacing: 0.08em;
 }
 
@@ -517,7 +517,7 @@ h1 span {
 .status-detail p {
   margin: 0;
   color: #686868;
-  font-size: 8px;
+  font-size: 9px;
   line-height: 1.5;
 }
 
@@ -528,7 +528,7 @@ h1 span {
   overflow: hidden;
   color: #505050;
   font-family: Consolas, "Cascadia Mono", monospace;
-  font-size: 6px;
+  font-size: 7px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -597,14 +597,14 @@ h1 span {
 
 .launch-choice strong {
   color: #888;
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 560;
 }
 
 .launch-choice small {
   margin-top: 3px;
   color: #414141;
-  font-size: 7px;
+  font-size: 8px;
 }
 
 .launch-choice.is-disabled {
@@ -629,7 +629,7 @@ h1 span {
 
 .footer-trust > span:first-child {
   color: var(--orange);
-  font-size: 16px;
+  font-size: 18px;
 }
 
 .footer-trust strong,
@@ -640,7 +640,7 @@ h1 span {
 .footer-trust strong {
   color: #5c5c5c;
   font-family: Consolas, "Cascadia Mono", monospace;
-  font-size: 7px;
+  font-size: 8px;
   font-weight: 500;
   letter-spacing: 0.1em;
 }
@@ -648,7 +648,7 @@ h1 span {
 .footer-trust small {
   margin-top: 2px;
   color: #353535;
-  font-size: 7px;
+  font-size: 8px;
 }
 
 .footer-actions {
@@ -662,7 +662,7 @@ h1 span {
   min-height: 38px;
   cursor: pointer;
   font-family: Consolas, "Cascadia Mono", monospace;
-  font-size: 7px;
+  font-size: 8px;
   letter-spacing: 0.07em;
   transition:
     border-color 150ms ease,

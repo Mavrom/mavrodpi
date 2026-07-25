@@ -32,9 +32,9 @@ npm run build
 ```
 
 Release derlemesi yalnız
-`../src-tauri/target/release/bundle/nsis/MavroDPI_0.3.0_x64-setup.exe`
+`../src-tauri/target/release/bundle/nsis/MavroDPI_0.3.1_x64-setup.exe`
 eşleşmesini kabul eder; sürüm, dosya boyutu ve SHA256 değerlerini içeren
 `payload-manifest.json` dosyasını üretir. Wrapper çalışırken manifest ile
 payload'ı yeniden doğrular, kurulumdan sonra registry `DisplayVersion`
-değerinin `0.3.0` olduğunu denetler ve
+değerinin `0.3.1` olduğunu denetler ve
 `release/MavroDPI-Setup.exe` üretir.

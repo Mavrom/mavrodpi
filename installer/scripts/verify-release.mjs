@@ -49,7 +49,7 @@ const manifest = JSON.parse(await readFile(packagedManifest, "utf8"));
 if (
   manifest.schemaVersion !== 1 ||
   manifest.productName !== "MavroDPI" ||
-  manifest.version !== "0.3.0" ||
+  manifest.version !== "0.3.1" ||
   manifest.architecture !== "x64" ||
   manifest.fileName !== "MavroDPI-payload.exe" ||
   manifest.size !== payload.size ||

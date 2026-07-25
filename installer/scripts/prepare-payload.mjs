@@ -12,7 +12,7 @@ import { fileURLToPath } from "node:url";
 
 import { inspectPortableExecutable } from "./pe-utils.mjs";
 
-const VERSION = "0.3.0";
+const VERSION = "0.3.1";
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const installerRoot = path.resolve(scriptDirectory, "..");
 const nsisDirectory = path.resolve(

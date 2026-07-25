@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.1 — 2026-07-25
+
+- Uygulama ve özel Setup metinleri yaklaşık %15 büyütüldü.
+- Özel Setup, sıfır dışı NSIS dönüşünü ancak Program Files uygulaması, kayıt,
+  sürüm, boyut ve SHA-256 doğrulaması eksiksizse başarılı kabul eder.
+
 ## 0.3.0 — 2026-07-24
 
 - Demo arayüzü gerçek GoodbyeDPI 0.2.2 ve WinDivert motoruna bağlandı.

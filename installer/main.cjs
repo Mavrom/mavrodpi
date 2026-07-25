@@ -10,7 +10,7 @@ const { promisify } = require("node:util");
 
 const execFileAsync = promisify(execFile);
 const PRODUCT_NAME = "MavroDPI";
-const PRODUCT_VERSION = "0.3.0";
+const PRODUCT_VERSION = "0.3.1";
 const INSTALLED_EXECUTABLE = "MavroDPI.exe";
 const PAYLOAD_FILE = "MavroDPI-payload.exe";
 const PAYLOAD_MANIFEST_FILE = "payload-manifest.json";
@@ -583,13 +583,9 @@ async function runElevatedNsis(payloadPath, updateMode) {
       exitCode,
     });
 
-    if (exitCode !== 0) {
-      const error = new Error(`NSIS kurulum süreci ${exitCode} koduyla kapandı.`);
-      error.exitCode = exitCode;
-      throw error;
-    }
-
-    return exitCode;
+    // Non-zero NSIS status is not accepted by itself. The caller validates the
+    // final Program Files executable, uninstall record, version, size, and hash.
+    return { exitCode, nonZeroExit: exitCode !== 0 };
   } finally {
     await fs.promises.rm(markerDirectory, { recursive: true, force: true });
   }
@@ -623,10 +619,11 @@ async function performInstall({ launchAfterInstall }) {
     });
 
     const existingInstall = await findValidatedInstalledApplication();
-    const exitCode = await runElevatedNsis(
+    const nsisResult = await runElevatedNsis(
       payload.path,
       existingInstall !== null,
     );
+    const exitCode = nsisResult.exitCode;
 
     emitStatus({
       phase: "verifying-installation",
@@ -648,9 +645,11 @@ async function performInstall({ launchAfterInstall }) {
 
     emitStatus({
       phase: "complete",
-      message: launchAfterInstall
-        ? "Kurulum doğrulandı ve MavroDPI başlatıldı."
-        : "Kurulum ve Windows kayıtları doğrulandı.",
+      message: nsisResult.nonZeroExit
+        ? "NSIS sıfır dışı kod döndürdü; ancak kurulu uygulama, sürüm ve SHA-256 kimliği eksiksiz doğrulandı."
+        : launchAfterInstall
+          ? "Kurulum doğrulandı ve MavroDPI başlatıldı."
+          : "Kurulum ve Windows kayıtları doğrulandı.",
       exitCode,
       installedPath: verified.executablePath,
       registryKey: verified.registryKey,

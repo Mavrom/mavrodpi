@@ -116,14 +116,14 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: "MavroDPI ${{ github.ref_name }}"
           releaseBody: |
-            MavroDPI 0.3.0, demo akışını gerçek yerel GoodbyeDPI/WinDivert
+            MavroDPI 0.3.1, demo akışını gerçek yerel GoodbyeDPI/WinDivert
             motoru, geri alınabilir Windows 11 DoH yönetimi, gerçek bağlantı
             tanılaması ve OLED arayüzle değiştirir.
 
             İndirme seçenekleri:
             - `MavroDPI-Setup.exe`: özel arayüzlü kurulum
-            - `MavroDPI_0.3.0_x64-setup.exe`: standart Tauri kurulumu
-            - `MavroDPI-v0.3.0-source.zip`: açık kaynak proje arşivi
+            - `MavroDPI_0.3.1_x64-setup.exe`: standart Tauri kurulumu
+            - `MavroDPI-v0.3.1-source.zip`: açık kaynak proje arşivi
             - `SHA256SUMS.txt`: indirilen dosya doğrulama değerleri
 
             Önemli:
@@ -131,7 +131,7 @@ jobs:
               "Bilinmeyen yayıncı" uyarısı gösterebilir.
             - Yönetici yetkisi WinDivert ve Windows DNS değişiklikleri için
               gereklidir.
-            - 0.2.4 özgün DNS ayarını kaydetmedi. 0.3.0 günlüksüz açık DNS'i
+            - 0.2.4 özgün DNS ayarını kaydetmedi. 0.3.1 günlüksüz açık DNS'i
               harici olarak korur ve yalnız kullanıcı isterse DHCP'ye sıfırlar.
             - Bu uygulama VPN/proxy değildir; sıfır ek yük veya her ağda erişim
               garantisi vermez.
