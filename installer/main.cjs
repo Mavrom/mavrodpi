@@ -10,7 +10,7 @@ const { promisify } = require("node:util");
 
 const execFileAsync = promisify(execFile);
 const PRODUCT_NAME = "MavroDPI";
-const PRODUCT_VERSION = "0.3.1";
+const PRODUCT_VERSION = "0.3.2";
 const INSTALLED_EXECUTABLE = "MavroDPI.exe";
 const PAYLOAD_FILE = "MavroDPI-payload.exe";
 const PAYLOAD_MANIFEST_FILE = "payload-manifest.json";
@@ -312,6 +312,12 @@ async function findMavroRegistryEntries() {
   }
 
   return entries;
+}
+
+async function detectExistingMavroInstall() {
+  // Only a real PE under Program Files that is referenced by the exact MavroDPI
+  // uninstall entry can enable repair/update mode.
+  return findValidatedInstalledApplication();
 }
 
 function registryExecutable(value) {
@@ -619,9 +625,17 @@ async function performInstall({ launchAfterInstall }) {
     });
 
     const existingInstall = await findValidatedInstalledApplication();
+    const existingRecord = existingInstall ?? (await detectExistingMavroInstall());
+    const installMode = existingRecord ? "repair" : "install";
+    if (installMode === "repair") {
+      emitStatus({
+        phase: "installing",
+        message: "Önceki MavroDPI kurulumu bulundu; onar ve güncelleme modu başlatılıyor.",
+      });
+    }
     const nsisResult = await runElevatedNsis(
       payload.path,
-      existingInstall !== null,
+      installMode === "repair",
     );
     const exitCode = nsisResult.exitCode;
 
@@ -655,6 +669,7 @@ async function performInstall({ launchAfterInstall }) {
       registryKey: verified.registryKey,
       installedVersion: verified.displayVersion,
       launched: launchAfterInstall,
+      installMode,
     });
 
     return {
@@ -664,6 +679,7 @@ async function performInstall({ launchAfterInstall }) {
       registryKey: verified.registryKey,
       installedVersion: verified.displayVersion,
       launched: launchAfterInstall,
+      installMode,
     };
   } catch (error) {
     const message = safeErrorMessage(
@@ -688,6 +704,7 @@ async function performInstall({ launchAfterInstall }) {
 async function getInstallerInfo() {
   try {
     const payload = await inspectPackagedPayload();
+    const existingInstall = await detectExistingMavroInstall();
     return {
       productName: PRODUCT_NAME,
       version: PRODUCT_VERSION,
@@ -696,6 +713,8 @@ async function getInstallerInfo() {
       payloadBytes: payload.size,
       payloadHash: payload.sha256,
       payloadVersion: payload.version,
+      installMode: existingInstall ? "repair" : "install",
+      installedVersion: existingInstall?.displayVersion ?? null,
       status: currentStatus,
     };
   } catch (error) {

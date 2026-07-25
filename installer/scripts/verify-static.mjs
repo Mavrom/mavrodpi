@@ -32,7 +32,7 @@ function requireCondition(condition, message) {
   }
 }
 
-requireCondition(manifest.version === "0.3.1", "Wrapper sürümü 0.3.1 olmalı.");
+requireCondition(manifest.version === "0.3.2", "Wrapper sürümü 0.3.2 olmalı.");
 requireCondition(
   manifest.build?.artifactName === "MavroDPI-Setup.exe",
   "Release adı MavroDPI-Setup.exe olmalı.",
@@ -93,7 +93,9 @@ for (const token of [
   "registryApplicationCandidates(entry)",
   "findValidatedInstalledApplication",
   "requiredVersion: PRODUCT_VERSION",
-  "existingInstall !== null",
+  "detectExistingMavroInstall",
+  'const installMode = existingRecord ? "repair" : "install"',
+  'installMode === "repair"',
   "executable.size !== expectedExecutableSize",
   "executable.sha256 !== expectedExecutableSha256",
   "candidateInsideProgramFiles(executable.path, roots)",

@@ -12,6 +12,8 @@ const elements = {
   launchAfter: document.querySelector("#launchAfter"),
   installButton: document.querySelector("#installButton"),
   installButtonLabel: document.querySelector("#installButton span"),
+  pageTitle: document.querySelector("#pageTitle"),
+  introCopy: document.querySelector(".intro-copy"),
   closeButton: document.querySelector("#closeButton"),
   launchChoice: document.querySelector(".launch-choice"),
   steps: {
@@ -61,6 +63,7 @@ let currentPhase = "ready";
 let installRunning = false;
 let installationComplete = false;
 let launchedAfterInstall = false;
+let repairMode = false;
 
 function setStep(step, state) {
   const item = elements.steps[step];
@@ -214,14 +217,24 @@ async function loadInfo() {
   try {
     const info = await window.mavroInstaller.getInfo();
     payloadReady = info.payloadReady === true;
+    repairMode = info.installMode === "repair";
     elements.packageCard.classList.toggle("is-ready", payloadReady);
     elements.packageCard.classList.toggle("is-error", !payloadReady);
-    elements.packageState.textContent = payloadReady ? "DOĞRULANDI" : "EKSİK";
+    elements.packageState.textContent = payloadReady
+      ? repairMode
+        ? "ONAR"
+        : "DOĞRULANDI"
+      : "EKSİK";
     elements.packageDetail.textContent = payloadReady
       ? `${formatBytes(info.payloadBytes)} · SHA256 ${info.payloadHash
           .slice(0, 12)
           .toUpperCase()}`
       : info.payloadError || "Payload bu yapıya eklenmedi.";
+    if (repairMode) {
+      elements.pageTitle.innerHTML = "Onar ve güncelle.<br /><span>Mevcut kurulum korunur.</span>";
+      elements.introCopy.textContent = `MavroDPI ${info.installedVersion || "kurulumu"} bulundu. Setup mevcut uygulamayı, servis ayarlarını ve geri alınabilir DNS durumunu koruyarak onarır.`;
+      elements.installButtonLabel.textContent = "Onar ve güncelle";
+    }
     elements.installButton.disabled = !payloadReady;
     renderStatus(info.status);
   } catch {

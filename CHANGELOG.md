@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.2 — 2026-07-25
+
+- Mevcut, doğrulanabilir MavroDPI kurulumu otomatik algılanır ve Setup
+  "Onar ve güncelle" moduna geçer.
+- Onarım, mevcut servis ve geri alınabilir DNS durumunu koruyan `/UPDATE`
+  kurulum yolunu kullanır.
+
 ## 0.3.1 — 2026-07-25
 
 - Uygulama ve özel Setup metinleri yaklaşık %15 büyütüldü.
