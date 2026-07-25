@@ -11,46 +11,239 @@ permissions:
 jobs:
   build-windows:
     runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
+    timeout-minutes: 60
 
-      - uses: actions/setup-node@v4
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Verify tag and application versions
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $tagMatch = [regex]::Match(
+            $env:RELEASE_TAG,
+            '^v(?<version>(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*))$'
+          )
+          if (-not $tagMatch.Success) {
+            throw "Release tag must use the exact vMAJOR.MINOR.PATCH format."
+          }
+          $expectedVersion = $tagMatch.Groups["version"].Value
+
+          $cargoPackage = [regex]::Match(
+            (Get-Content -Raw "src-tauri/Cargo.toml"),
+            '(?ms)^\[package\]\s*(?<body>.*?)(?=^\[|\z)'
+          )
+          if (-not $cargoPackage.Success) {
+            throw "Could not find the Cargo [package] section."
+          }
+          $cargoVersion = [regex]::Match(
+            $cargoPackage.Groups["body"].Value,
+            '(?m)^version\s*=\s*"(?<version>[^"]+)"\s*$'
+          )
+          if (-not $cargoVersion.Success) {
+            throw "Could not find the Cargo package version."
+          }
+          $serviceCargoPackage = [regex]::Match(
+            (Get-Content -Raw "src-tauri/service-helper/Cargo.toml"),
+            '(?ms)^\[package\]\s*(?<body>.*?)(?=^\[|\z)'
+          )
+          $serviceCargoVersion = [regex]::Match(
+            $serviceCargoPackage.Groups["body"].Value,
+            '(?m)^version\s*=\s*"(?<version>[^"]+)"\s*$'
+          )
+          if (-not $serviceCargoPackage.Success -or -not $serviceCargoVersion.Success) {
+            throw "Could not find the service helper Cargo package version."
+          }
+
+          $versions = [ordered]@{
+            "package.json" = (Get-Content -Raw "package.json" | ConvertFrom-Json).version
+            "src-tauri/tauri.conf.json" = (Get-Content -Raw "src-tauri/tauri.conf.json" | ConvertFrom-Json).version
+            "src-tauri/Cargo.toml" = $cargoVersion.Groups["version"].Value
+            "src-tauri/service-helper/Cargo.toml" = $serviceCargoVersion.Groups["version"].Value
+            "installer/package.json" = (Get-Content -Raw "installer/package.json" | ConvertFrom-Json).version
+          }
+
+          foreach ($entry in $versions.GetEnumerator()) {
+            if ($entry.Value -ne $expectedVersion) {
+              throw "$($entry.Key) version '$($entry.Value)' does not match tag '$env:RELEASE_TAG'."
+            }
+          }
+
+          "Release versions match: $expectedVersion"
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable
+        with:
+          toolchain: "1.95.0"
+          components: rustfmt, clippy
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
-      - name: Build service host binary (isolated, no Tauri build.rs)
+      - name: Build and type-check frontend
+        run: npm run build
+
+      - name: Build and verify service host binary
+        shell: pwsh
+        run: ./scripts/prepare-service.ps1
+
+      - name: Test Rust application
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force svc-build\src | Out-Null
-          Copy-Item src-tauri\src\bin\mavrodpi-svc.rs svc-build\src\main.rs
-          @"
-          [package]
-          name = "mavrodpi-svc"
-          version = "0.1.0"
-          edition = "2021"
-          [dependencies]
-          windows-service = "0.7"
-          "@ | Out-File svc-build\Cargo.toml -Encoding utf8
-          cd svc-build
-          cargo build --release
-          cd ..
-          New-Item -ItemType Directory -Force src-tauri\resources | Out-Null
-          Copy-Item svc-build\target\release\mavrodpi-svc.exe src-tauri\resources\mavrodpi-svc.exe -Force
+          cargo test --manifest-path src-tauri/Cargo.toml --locked
+          if ($LASTEXITCODE -ne 0) {
+            throw "Rust application tests failed."
+          }
+          cargo test --manifest-path src-tauri/service-helper/Cargo.toml --locked
+          if ($LASTEXITCODE -ne 0) {
+            throw "Service helper tests failed."
+          }
 
-      - name: Build & release
-        uses: tauri-apps/tauri-action@v0
+      - name: Build Tauri application and draft release
+        uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
         with:
           tagName: ${{ github.ref_name }}
           releaseName: "MavroDPI ${{ github.ref_name }}"
-          releaseBody: "Yeni sürüm çıktı. Uygulama açıkken otomatik güncelleme bildirimi alacaksınız."
-          releaseDraft: false
+          releaseBody: |
+            MavroDPI 0.3.0, demo akışını gerçek yerel GoodbyeDPI/WinDivert
+            motoru, geri alınabilir Windows 11 DoH yönetimi, gerçek bağlantı
+            tanılaması ve OLED arayüzle değiştirir.
+
+            İndirme seçenekleri:
+            - `MavroDPI-Setup.exe`: özel arayüzlü kurulum
+            - `MavroDPI_0.3.0_x64-setup.exe`: standart Tauri kurulumu
+            - `MavroDPI-v0.3.0-source.zip`: açık kaynak proje arşivi
+            - `SHA256SUMS.txt`: indirilen dosya doğrulama değerleri
+
+            Önemli:
+            - Paketler henüz Authenticode ile imzalanmadı; Windows SmartScreen
+              "Bilinmeyen yayıncı" uyarısı gösterebilir.
+            - Yönetici yetkisi WinDivert ve Windows DNS değişiklikleri için
+              gereklidir.
+            - 0.2.4 özgün DNS ayarını kaydetmedi. 0.3.0 günlüksüz açık DNS'i
+              harici olarak korur ve yalnız kullanıcı isterse DHCP'ye sıfırlar.
+            - Bu uygulama VPN/proxy değildir; sıfır ek yük veya her ağda erişim
+              garantisi vermez.
+          releaseDraft: true
           prerelease: false
           includeUpdaterJson: true
+
+      - name: Use Node.js for custom installer
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: installer/package-lock.json
+
+      - name: Audit and build custom installer
+        working-directory: installer
+        run: |
+          npm ci
+          npm audit --audit-level=moderate
+          npm run build
+
+      - name: Create source archive and checksums
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $tag = $env:RELEASE_TAG
+          if ($tag -notmatch '^v(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)$') {
+            throw "Unsafe release tag: '$tag'."
+          }
+
+          $tagCommit = (& git rev-parse "$tag^{commit}").Trim()
+          if ($LASTEXITCODE -ne 0) {
+            throw "Could not resolve release tag '$tag'."
+          }
+          $headCommit = (& git rev-parse "HEAD^{commit}").Trim()
+          if ($LASTEXITCODE -ne 0 -or $tagCommit -ne $headCommit) {
+            throw "Release tag '$tag' does not resolve to the checked-out commit."
+          }
+
+          $assetDirectory = Join-Path $env:GITHUB_WORKSPACE "release-assets"
+          New-Item -ItemType Directory -Path $assetDirectory -Force | Out-Null
+
+          $setupAsset = Join-Path $assetDirectory "MavroDPI-Setup.exe"
+          Copy-Item `
+            -LiteralPath "installer/release/MavroDPI-Setup.exe" `
+            -Destination $setupAsset `
+            -Force
+
+          $version = $tag.Substring(1)
+          $standardSetupName = "MavroDPI_${version}_x64-setup.exe"
+          $standardSetup = Join-Path `
+            $env:GITHUB_WORKSPACE `
+            "src-tauri/target/release/bundle/nsis/$standardSetupName"
+          if (-not (Test-Path -LiteralPath $standardSetup -PathType Leaf)) {
+            throw "Standard Tauri setup was not found: $standardSetup"
+          }
+
+          $sourceName = "MavroDPI-$tag-source.zip"
+          $sourceArchive = Join-Path $assetDirectory $sourceName
+          & git archive `
+            "--format=zip" `
+            "--prefix=MavroDPI-$tag/" `
+            "--output=$sourceArchive" `
+            $tag
+          if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $sourceArchive)) {
+            throw "Source archive creation failed."
+          }
+
+          $checksumLines = @(
+            "{0}  {1}" -f (
+              Get-FileHash -Algorithm SHA256 -LiteralPath $setupAsset
+            ).Hash.ToLowerInvariant(), (Split-Path -Leaf $setupAsset)
+            "{0}  {1}" -f (
+              Get-FileHash -Algorithm SHA256 -LiteralPath $standardSetup
+            ).Hash.ToLowerInvariant(), $standardSetupName
+            "{0}  {1}" -f (
+              Get-FileHash -Algorithm SHA256 -LiteralPath $sourceArchive
+            ).Hash.ToLowerInvariant(), (Split-Path -Leaf $sourceArchive)
+          )
+          $checksumPath = Join-Path $assetDirectory "SHA256SUMS.txt"
+          [System.IO.File]::WriteAllText(
+            $checksumPath,
+            ($checksumLines -join "`n") + "`n",
+            [System.Text.UTF8Encoding]::new($false)
+          )
+
+      - name: Upload custom release assets and publish
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $assets = Get-ChildItem `
+            -LiteralPath (Join-Path $env:GITHUB_WORKSPACE "release-assets") `
+            -File |
+            Sort-Object Name |
+            Select-Object -ExpandProperty FullName
+
+          if ($assets.Count -ne 3) {
+            throw "Expected exactly three custom release assets."
+          }
+
+          & gh release upload $env:RELEASE_TAG @assets --clobber
+          if ($LASTEXITCODE -ne 0) {
+            throw "Uploading custom release assets failed."
+          }
+
+          & gh release edit $env:RELEASE_TAG --draft=false --prerelease=false --latest
+          if ($LASTEXITCODE -ne 0) {
+            throw "Publishing the release failed."
+          }

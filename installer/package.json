@@ -1,0 +1,68 @@
+{
+  "name": "mavrodpi-setup",
+  "version": "0.3.0",
+  "description": "MavroDPI için güvenli, özel Windows kurulum başlatıcısı",
+  "main": "main.cjs",
+  "author": "MavroM / Mavrom",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "postinstall": "node node_modules/electron/install.js",
+    "start": "electron .",
+    "verify": "node --check main.cjs && node --check preload.cjs && node --check renderer/app.js && node scripts/verify-static.mjs",
+    "test": "npm run verify",
+    "prepare:payload": "node scripts/prepare-payload.mjs",
+    "build": "npm run verify && npm run prepare:payload && electron-builder --win portable --x64 && node scripts/verify-release.mjs",
+    "build:ui": "npm run verify && electron-builder --dir --win --x64 --config electron-builder.ui.yml"
+  },
+  "devDependencies": {
+    "electron": "43.2.0",
+    "electron-builder": "26.15.3"
+  },
+  "overrides": {
+    "brace-expansion": "5.0.8"
+  },
+  "build": {
+    "appId": "com.mavrom.mavrodpi.setup",
+    "productName": "MavroDPI Setup",
+    "artifactName": "MavroDPI-Setup.exe",
+    "electronDist": "node_modules/electron/dist",
+    "asar": true,
+    "compression": "maximum",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "renderer/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "payload/MavroDPI-payload.exe",
+        "to": "payload/MavroDPI-payload.exe"
+      },
+      {
+        "from": "payload/payload-manifest.json",
+        "to": "payload/payload-manifest.json"
+      }
+    ],
+    "win": {
+      "icon": "../src-tauri/icons/icon.ico",
+      "requestedExecutionLevel": "asInvoker",
+      "signExecutable": false,
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "portable": {
+      "requestExecutionLevel": "user"
+    }
+  }
+}

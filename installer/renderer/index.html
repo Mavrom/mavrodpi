@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; frame-src 'none'; media-src 'none'; worker-src 'none'; base-uri 'none'; form-action 'none'"
+    />
+    <meta name="color-scheme" content="dark" />
+    <title>MavroDPI Setup</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="window-shell">
+      <section class="window-surface" aria-labelledby="pageTitle">
+        <header class="titlebar">
+          <div class="brand">
+            <span class="brand-mark" aria-hidden="true"><i></i></span>
+            <span class="brand-name">MAVRO<span>DPI</span></span>
+          </div>
+          <div class="title-meta">
+            <span>SETUP</span>
+            <b>0.3.0</b>
+          </div>
+          <div class="platform-pill">
+            <i></i>
+            WINDOWS · X64
+          </div>
+        </header>
+
+        <div class="content">
+          <section class="intro">
+            <p class="section-index">INSTALL / 01</p>
+            <h1 id="pageTitle">Gerçek kurulum.<br /><span>Tek onay.</span></h1>
+            <p class="intro-copy">
+              MavroDPI’nin yerel Windows kurulum akışını başlatır. Paket
+              cihazında açılır; ağ trafiğin başka bir sunucuya gönderilmez.
+            </p>
+
+            <div class="package-card" id="packageCard">
+              <span class="package-icon" aria-hidden="true">
+                <i></i><i></i><i></i>
+              </span>
+              <span class="package-copy">
+                <small>PAKET</small>
+                <strong>MavroDPI 0.3.0</strong>
+                <em id="packageDetail">Paket doğrulanıyor…</em>
+              </span>
+              <span class="package-state" id="packageState">BEKLE</span>
+            </div>
+
+            <div class="notice">
+              <span aria-hidden="true">!</span>
+              <p>
+                Windows, kurulum için yönetici onayı isteyecek. Wrapper
+                başlangıçta yükseltilmiş yetkiyle çalışmaz.
+              </p>
+            </div>
+          </section>
+
+          <section class="process-card" aria-label="Kurulum aşamaları">
+            <div class="process-head">
+              <div>
+                <span>CANLI DURUM</span>
+                <h2 id="statusTitle">Kuruluma hazır</h2>
+              </div>
+              <span class="status-beacon" id="statusBeacon" aria-hidden="true">
+                <i></i>
+              </span>
+            </div>
+
+            <ol class="steps" id="steps">
+              <li data-step="payload">
+                <span class="step-number">01</span>
+                <span class="step-copy">
+                  <strong>Paket doğrulama</strong>
+                  <small>Boyut + MZ/PE imzası</small>
+                </span>
+                <span class="step-state">BEKLİYOR</span>
+              </li>
+              <li data-step="uac">
+                <span class="step-number">02</span>
+                <span class="step-copy">
+                  <strong>Yönetici onayı</strong>
+                  <small>Windows UAC ekranı</small>
+                </span>
+                <span class="step-state">BEKLİYOR</span>
+              </li>
+              <li data-step="install">
+                <span class="step-number">03</span>
+                <span class="step-copy">
+                  <strong>NSIS kurulumu</strong>
+                  <small id="exitCode">Gerçek işlem çıkışı</small>
+                </span>
+                <span class="step-state">BEKLİYOR</span>
+              </li>
+              <li data-step="verify">
+                <span class="step-number">04</span>
+                <span class="step-copy">
+                  <strong>Sistem doğrulama</strong>
+                  <small>EXE + kayıt + sürüm 0.3.0</small>
+                </span>
+                <span class="step-state">BEKLİYOR</span>
+              </li>
+            </ol>
+
+            <div class="status-detail" aria-live="polite">
+              <span class="detail-rule" aria-hidden="true"></span>
+              <p id="statusDetail">Kurulum başlatılmayı bekliyor.</p>
+              <code id="installedPath" hidden></code>
+            </div>
+
+            <label class="launch-choice">
+              <input id="launchAfter" type="checkbox" checked />
+              <span class="switch" aria-hidden="true"><i></i></span>
+              <span>
+                <strong>Kurulumdan sonra başlat</strong>
+                <small>Yalnız doğrulanan MavroDPI.exe açılır.</small>
+              </span>
+            </label>
+          </section>
+        </div>
+
+        <footer class="footer">
+          <div class="footer-trust">
+            <span aria-hidden="true">◇</span>
+            <span>
+              <strong>YEREL PAKET</strong>
+              <small>Harici indirme yapılmaz</small>
+            </span>
+          </div>
+          <div class="footer-actions">
+            <button class="secondary-button" id="closeButton" type="button">
+              İptal
+            </button>
+            <button class="primary-button" id="installButton" type="button" disabled>
+              <span>Kurulumu başlat</span>
+              <svg viewBox="0 0 20 20" aria-hidden="true">
+                <path d="M4 10h11M11 6l4 4-4 4"></path>
+              </svg>
+            </button>
+          </div>
+        </footer>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

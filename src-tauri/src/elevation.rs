@@ -47,19 +47,67 @@ pub fn relaunch_as_admin() -> bool {
         .chain(std::iter::once(0))
         .collect();
     let verb: Vec<u16> = "runas\0".encode_utf16().collect();
+    let parameters: Vec<u16> = "--elevated-relaunch\0".encode_utf16().collect();
 
     let result = unsafe {
         ShellExecuteW(
             std::ptr::null_mut(),
             verb.as_ptr(),
             exe_w.as_ptr(),
-            std::ptr::null(),
+            parameters.as_ptr(),
             std::ptr::null(),
             SW_SHOWNORMAL,
         )
     };
     // ShellExecuteW > 32 ise başarılı.
     (result as isize) > 32
+}
+
+#[cfg(windows)]
+pub struct SingleInstanceGuard(windows_sys::Win32::Foundation::HANDLE);
+
+#[cfg(windows)]
+impl Drop for SingleInstanceGuard {
+    fn drop(&mut self) {
+        use windows_sys::Win32::Foundation::CloseHandle;
+        use windows_sys::Win32::System::Threading::ReleaseMutex;
+
+        unsafe {
+            let _ = ReleaseMutex(self.0);
+            CloseHandle(self.0);
+        }
+    }
+}
+
+#[cfg(windows)]
+pub fn acquire_single_instance(wait_for_previous_ms: u32) -> Option<SingleInstanceGuard> {
+    use windows_sys::Win32::Foundation::{
+        GetLastError, ERROR_ALREADY_EXISTS, WAIT_ABANDONED, WAIT_OBJECT_0,
+    };
+    use windows_sys::Win32::System::Threading::{CreateMutexW, WaitForSingleObject};
+
+    // DNS durumu makine genelinde olduğu için masaüstü örneklerini Windows
+    // oturumları arasında da tekilleştir.
+    let mutex_name: Vec<u16> = "Global\\MavroDPI-Desktop-v1\0".encode_utf16().collect();
+    let handle = unsafe { CreateMutexW(std::ptr::null(), 1, mutex_name.as_ptr()) };
+    if handle.is_null() {
+        return None;
+    }
+
+    let already_exists = unsafe { GetLastError() } == ERROR_ALREADY_EXISTS;
+    if !already_exists {
+        return Some(SingleInstanceGuard(handle));
+    }
+
+    let wait_result = unsafe { WaitForSingleObject(handle, wait_for_previous_ms) };
+    if wait_result == WAIT_OBJECT_0 || wait_result == WAIT_ABANDONED {
+        Some(SingleInstanceGuard(handle))
+    } else {
+        unsafe {
+            windows_sys::Win32::Foundation::CloseHandle(handle);
+        }
+        None
+    }
 }
 
 #[cfg(not(windows))]

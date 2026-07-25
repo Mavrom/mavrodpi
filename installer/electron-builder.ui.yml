@@ -1,0 +1,15 @@
+appId: com.mavrom.mavrodpi.setup.ui-check
+productName: MavroDPI Setup UI Check
+electronDist: node_modules/electron/dist
+asar: true
+directories:
+  output: release-ui
+files:
+  - main.cjs
+  - preload.cjs
+  - renderer/**/*
+  - package.json
+win:
+  icon: ../src-tauri/icons/icon.ico
+  requestedExecutionLevel: asInvoker
+  signExecutable: false

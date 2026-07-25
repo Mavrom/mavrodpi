@@ -1,25 +1,72 @@
-use std::net::{TcpStream, ToSocketAddrs};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
+use reqwest::blocking::Client;
+use reqwest::redirect::Policy;
 use serde::Serialize;
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SiteStatus {
     pub name: String,
     pub host: String,
     pub reachable: bool,
+    pub latency_ms: Option<u128>,
+    pub status_code: Option<u16>,
+    pub detail: String,
 }
 
 const SITES: &[(&str, &str)] = &[
-    ("Discord",    "discord.com"),
-    ("YouTube",    "youtube.com"),
-    ("Twitter / X","x.com"),
-    ("Twitch",     "twitch.tv"),
-    ("Instagram",  "instagram.com"),
-    ("Reddit",     "reddit.com"),
-    ("Spotify",    "spotify.com"),
-    ("OnlyFans",   "onlyfans.com"),
+    ("Discord", "discord.com"),
+    ("YouTube", "youtube.com"),
+    ("X", "x.com"),
+    ("Twitch", "twitch.tv"),
+    ("Instagram", "instagram.com"),
+    ("Reddit", "reddit.com"),
+    ("Spotify", "spotify.com"),
 ];
+
+fn check_site(name: String, host: String) -> SiteStatus {
+    let client = match Client::builder()
+        .connect_timeout(Duration::from_secs(5))
+        .timeout(Duration::from_secs(8))
+        .redirect(Policy::limited(3))
+        .user_agent("MavroDPI/0.3 connectivity-check")
+        .no_proxy()
+        .build()
+    {
+        Ok(client) => client,
+        Err(error) => {
+            return SiteStatus {
+                name,
+                host,
+                reachable: false,
+                latency_ms: None,
+                status_code: None,
+                detail: format!("HTTPS istemcisi hazırlanamadı: {error}"),
+            }
+        }
+    };
+
+    let started = Instant::now();
+    match client.get(format!("https://{host}/")).send() {
+        Ok(response) => SiteStatus {
+            name,
+            host,
+            reachable: true,
+            latency_ms: Some(started.elapsed().as_millis()),
+            status_code: Some(response.status().as_u16()),
+            detail: format!("TLS/HTTPS yanıtı alındı: {}", response.status().as_u16()),
+        },
+        Err(error) => SiteStatus {
+            name,
+            host,
+            reachable: false,
+            latency_ms: Some(started.elapsed().as_millis()),
+            status_code: None,
+            detail: format!("TLS/HTTPS bağlantısı kurulamadı: {error}"),
+        },
+    }
+}
 
 #[tauri::command]
 pub fn check_sites() -> Vec<SiteStatus> {
@@ -28,26 +75,20 @@ pub fn check_sites() -> Vec<SiteStatus> {
         .map(|(name, host)| {
             let name = name.to_string();
             let host = host.to_string();
-            std::thread::spawn(move || {
-                let addr = format!("{host}:443");
-                let reachable = addr
-                    .to_socket_addrs()
-                    .ok()
-                    .and_then(|mut a| a.next())
-                    .map(|a| TcpStream::connect_timeout(&a, Duration::from_secs(5)).is_ok())
-                    .unwrap_or(false);
-                SiteStatus { name, host, reachable }
-            })
+            std::thread::spawn(move || check_site(name, host))
         })
         .collect();
 
     handles
         .into_iter()
-        .map(|h| {
-            h.join().unwrap_or(SiteStatus {
+        .map(|handle| {
+            handle.join().unwrap_or_else(|_| SiteStatus {
                 name: "?".into(),
                 host: "?".into(),
                 reachable: false,
+                latency_ms: None,
+                status_code: None,
+                detail: "Bağlantı kontrolü beklenmedik biçimde sonlandı.".into(),
             })
         })
         .collect()
